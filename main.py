@@ -21,7 +21,11 @@ def get_link_to_player(original_page_link):
     soup = BeautifulSoup(req.text, "html.parser")
     # Get the link to player page
     modal = soup.find(id="basic-modal").a["href"]
-    return modal
+    return modal, soup
+
+
+def get_name_from_original_page(original_page_data: BeautifulSoup):
+    return original_page_data.find("div", class_="hgroup").h2.text
 
 
 def get_link_to_video_from_player_page(player_page):
@@ -35,10 +39,11 @@ def get_link_to_video_from_player_page(player_page):
     return link_raw
 
 
-def get_video_from_link_to_video(link_to_video):
+def get_video_from_link_to_video(link_to_video, custom_name=""):
     print("Getting video from the link to the video")
-
-    video_name = link_to_video.split("/")[-1][:-4]
+    video_name = custom_name
+    if custom_name == "":
+        video_name = link_to_video.split("/")[-1][:-4]
 
     req = requests.get(link_to_video + POSTFIX, allow_redirects=True)
 
@@ -48,11 +53,13 @@ def get_video_from_link_to_video(link_to_video):
 
 
 def download_video(link):
-    player_page = get_link_to_player(link)
+    player_page, original_page = get_link_to_player(link)
+    name_on_page = get_name_from_original_page(original_page)
     video_link = get_link_to_video_from_player_page(player_page)
-    video_name = get_video_from_link_to_video(video_link)
+    video_name = get_video_from_link_to_video(
+        video_link, custom_name=name_on_page)
     print("Download is completed")
-    return video_name
+    return name_on_page
 
 
 def make_CSV(csv_file_name, text, image_link, video_name=None):
@@ -87,11 +94,11 @@ def convert_one_video(folder, video_name, convert_to: Convertable, convert_from:
         convert_to = "gif"
     elif convert_to == Convertable.MP4:
         convert_to = "mp4"
-    
+
     if convert_from == Convertable.GIF:
-      convert_from = "gif"
+        convert_from = "gif"
     elif convert_from == Convertable.MP4:
-      convert_from = "mp4"
+        convert_from = "mp4"
 
     if new_name == "":
         new_name = name_without_type
